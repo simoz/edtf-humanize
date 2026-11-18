@@ -15,4 +15,7 @@ if ENV['MINIMUM_VERSIONS']
   gem 'activesupport', '~> 6.1.0'
   gem 'concurrent-ruby', '< 1.3.5' # activesupport 6.1 relies on it to load Logger
   gem 'edtf', '~> 3.1.0'
+# The CI "edtf" jobs test against each major version of edtf, e.g. EDTF_VERSION='~> 4.1'
+elsif ENV['EDTF_VERSION']
+  gem 'edtf', ENV.fetch('EDTF_VERSION')
 end

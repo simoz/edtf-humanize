@@ -5,10 +5,10 @@
 edtf-humanize turns [Extended Date/Time Format (EDTF)](https://www.loc.gov/standards/datetime/) dates into human-readable strings, in English, French, German and Italian:
 
 ```ruby
-Date.edtf('1984~/2004-06').humanize # => "circa 1984 to June 2004"
+EDTF.parse('1984~/2004-06').humanize # => "circa 1984 to June 2004"
 ```
 
-It adds a `humanize` method to `Date` and to the `EDTF::Century`, `EDTF::Decade`, `EDTF::Interval`, `EDTF::Season`, `EDTF::Set` and `EDTF::Unknown` objects that the [edtf-ruby](https://github.com/inukshuk/edtf-ruby) gem parses. See edtf-ruby's documentation for the EDTF syntax it supports.
+It adds a `humanize` method to `Date` and to the `EDTF::Century`, `EDTF::Decade`, `EDTF::Interval`, `EDTF::Season` and `EDTF::Set` objects that the [edtf-ruby](https://github.com/inukshuk/edtf-ruby) gem parses, plus `EDTF::Unknown` with edtf 3 and 4, and `EDTF::List` and `EDTF::DateTime` with edtf 5. See edtf-ruby's documentation for the EDTF syntax it supports.
 
 ## Requirements
 
@@ -34,7 +34,7 @@ require 'edtf-humanize'
 
 ## Examples
 
-Parse an EDTF string with `Date.edtf` and call `humanize` on the result.
+Parse an EDTF string with `EDTF.parse` and call `humanize` on the result. (`Date.edtf` works too with edtf 3 and 4, but edtf 5 removed it.)
 
 ### Dates
 
@@ -69,6 +69,8 @@ A lowercase `x` and an uppercase `X` mean different things:
 
 - **`197x` is a decade:** the whole span, 1970 through 1979. edtf-ruby parses it as an `EDTF::Decade` (`19xx` as an `EDTF::Century`).
 - **`197X` is one unknown year:** a single year whose last digit isn't known. edtf-ruby parses it as a `Date` with an unspecified digit, so it renders as "1970s (year unknown)".
+
+edtf 5 reads `197X` and `19XX` as a decade and a century too, so they render as "1970s" and "20th century". To read them as unknown years, parse with `EDTF.parse('197X', centuries: false)`.
 
 ### Seasons
 
@@ -120,9 +122,9 @@ Set the locale globally or for a block:
 
 ```ruby
 I18n.locale = :de
-Date.edtf('1975-07-01').humanize # => "1. Juli 1975"
+EDTF.parse('1975-07-01').humanize # => "1. Juli 1975"
 
-I18n.with_locale(:fr) { Date.edtf('1975-07-01').humanize } # => "1 Juillet 1975"
+I18n.with_locale(:fr) { EDTF.parse('1975-07-01').humanize } # => "1 Juillet 1975"
 ```
 
 Setting any other locale raises `I18n::InvalidLocale` unless you provide translations for it (see [Adding a language](#adding-a-language)).
@@ -135,7 +137,7 @@ No extra setup is needed. `require 'edtf-humanize'` adds the gem's locale files 
 require 'edtf-humanize'
 
 I18n.locale = :it
-Date.edtf('1975-22').humanize # => "estate 1975"
+EDTF.parse('1975-22').humanize # => "estate 1975"
 ```
 
 Require `edtf-humanize`, not `edtf/humanize`. The latter loads the code without the locale files, so setting a non-English locale raises `I18n::InvalidLocale: :fr is not a valid locale`.
@@ -156,7 +158,7 @@ en:
 I18n.load_path << 'config/locales/my_overrides.en.yml'
 I18n.reload! # only needed if translations were already used
 
-Date.edtf('1981~').humanize # => "about 1981"
+EDTF.parse('1981~').humanize # => "about 1981"
 ```
 
 Some language-specific wording, such as century names ("20th century", "XXe siècle"), is built in each language's module rather than read from I18n.

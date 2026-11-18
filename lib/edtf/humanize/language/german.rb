@@ -10,7 +10,7 @@ module Edtf
           extend self
 
           def humanizer(date)
-            "#{(date.year.abs / 100) + 1}." \
+            "#{(date.begin.year.abs / 100) + 1}." \
               "#{century_number_suffix}" \
               "#{century_sign_suffix(date)}"
           end
@@ -22,7 +22,7 @@ module Edtf
           end
 
           def century_sign_suffix(date)
-            return ' v. Chr.' if date.year.negative?
+            return ' v. Chr.' if date.begin.year.negative?
 
             ''
           end

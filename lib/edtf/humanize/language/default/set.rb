@@ -30,13 +30,22 @@ module Edtf
           end
 
           def format_set_entries(dates)
-            dates.entries.map.with_index do |date, index|
+            entries = dates.entries
+            entries.map.with_index do |date, index|
               "#{apply_if_earlier(dates, index)}" \
-                "#{apply_if_later(dates, index)}" \
-                "#{apply_prefix_if_approximate(date)}" \
-                "#{date_format(date)}" \
-                "#{apply_suffix_if_approximate(date)}"
+                "#{apply_if_later(dates, index, entries.size)}" \
+                "#{format_set_entry(date)}"
             end
+          end
+
+          # edtf 5 sets can also hold decades and centuries, which humanize
+          # themselves: '[196X,1972]' => 1960s or 1972
+          def format_set_entry(date)
+            return date.humanize unless date.is_a?(::Date)
+
+            "#{apply_prefix_if_approximate(date)}" \
+              "#{date_format(date)}" \
+              "#{apply_suffix_if_approximate(date)}"
           end
 
           # '[..1760-12-03]' => on or before December 3, 1760
@@ -54,9 +63,8 @@ module Edtf
           end
 
           # '[1760-12..]' => on or after December 1760
-          def apply_if_later(dates, index)
-            later_prefix(dates) if dates.later? &&
-                                   (index + 1) == dates.size
+          def apply_if_later(dates, index, size)
+            later_prefix(dates) if dates.later? && (index + 1) == size
           end
 
           def later_prefix(dates)
@@ -68,8 +76,11 @@ module Edtf
             mode(dates) == 'inclusive' ? 'on and after ' : 'on or after '
           end
 
+          # edtf 5 has separate classes: EDTF::Set ([...], one of the dates)
+          # and EDTF::List ({...}, all of them)
           def mode(date)
-            date.choice? ? 'exclusive' : 'inclusive'
+            choice = date.respond_to?(:choice?) ? date.choice? : date.is_a?(EDTF::Set)
+            choice ? 'exclusive' : 'inclusive'
           end
         end
       end

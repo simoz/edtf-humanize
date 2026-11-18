@@ -20,11 +20,11 @@ module Edtf
           private
 
           def century_number(date)
-            I18n.with_locale(:en) { ((date.year.abs / 100) + 1).ordinalize }
+            I18n.with_locale(:en) { ((date.begin.year.abs / 100) + 1).ordinalize }
           end
 
           def century_sign_suffix(date)
-            return ' BCE' if date.year.negative?
+            return ' BCE' if date.begin.year.negative?
 
             ''
           end

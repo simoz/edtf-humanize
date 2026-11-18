@@ -34,8 +34,13 @@ module Edtf
     EDTF::Season.include Edtf::Humanize::Season
     EDTF::Interval.include Edtf::Humanize::Interval
     EDTF::Set.include Edtf::Humanize::Set
-    EDTF::Unknown.include Edtf::Humanize::Unknown
+    # edtf 5 parses inclusive sets ({...}) as EDTF::List, XXXX as a date
+    # with an unspecified year instead of an EDTF::Unknown, and date-times as
+    # EDTF::DateTime, a Ruby Time
+    EDTF::List.include Edtf::Humanize::Set if defined?(EDTF::List)
+    EDTF::Unknown.include Edtf::Humanize::Unknown if defined?(EDTF::Unknown)
     Date.include Edtf::Humanize::IsoDate
+    EDTF::DateTime.include Edtf::Humanize::IsoDate if defined?(EDTF::DateTime)
 
     def self.configuration
       @configuration ||= Configuration.new

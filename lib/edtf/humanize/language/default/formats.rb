@@ -14,17 +14,13 @@ module Edtf
           end
 
           def date_precision(date)
-            if date.respond_to? :precision
-              case known_precision(date)
-              when :day # 2010-10-25
-                day_precision_format(date)
-              when :month # 2010-10
-                month_precision_format(date)
-              when :year # 2010
-                year_precision_format(date)
-              end
-            else
-              date
+            case known_precision(date)
+            when :day # 2010-10-25
+              day_precision_format(date)
+            when :month # 2010-10
+              month_precision_format(date)
+            when :year # 2010
+              year_precision_format(date)
             end
           end
 
@@ -103,11 +99,23 @@ module Edtf
           # '1990-XX'    => 1990 (month unknown)
           # '198X-05-XX' => May, 1980s (year and day unknown)
           def apply_if_unspecified(date)
+            return Edtf::Humanize::Language.language_strategy::Unknown.humanizer(date) if unknown_year?(date)
+
             annotate_unknown_parts(date_with_unspecified_year(date), unknown_parts(date))
+          end
+
+          # edtf 5 parses 'XXXX' as a date with an unspecified year instead of
+          # an EDTF::Unknown
+          def unknown_year?(date)
+            date.respond_to?(:unspecified?) && date.unspecified?(:year) &&
+              known_precision(date) == :year && unspecified_year_digits(date).all?
           end
 
           # '1990-XX' has month precision, but only the year is known
           def known_precision(date)
+            # edtf 5 adds no EDTF methods to plain Ruby dates, and its date-times
+            # have time precisions; show both as days, as with edtf 3 and 4
+            return :day unless date.respond_to?(:precision) && %i[year month day].include?(date.precision)
             return date.precision unless date.respond_to?(:unspecified?)
             return :year if date.unspecified?(:month)
             return :month if date.unspecified?(:day)
@@ -144,17 +152,35 @@ module Edtf
           def unspecified_year_span(date)
             strategy = Edtf::Humanize::Language.language_strategy
             case unspecified_year_kind(date)
-            when :decade then strategy::Decade.humanizer(EDTF::Decade.new(date.year))
-            when :century then strategy::Century.humanizer(EDTF::Century.new(date.year))
+            when :decade then strategy::Decade.humanizer(epoch_of_year(EDTF::Decade, date.year))
+            when :century then strategy::Century.humanizer(epoch_of_year(EDTF::Century, date.year))
             end
+          end
+
+          # edtf 5 builds decades and centuries from their leading digits (198,
+          # 19) and has none before year 0. The humanizers only read the first
+          # year (begin.year), so a year-precision date stands in for them.
+          def epoch_of_year(epoch_class, year)
+            return epoch_class.new(year) if epoch_class.method_defined?(:year)
+
+            EDTF::Date.new(year)
           end
 
           # '198X' => :decade, '19XX' => :century
           def unspecified_year_kind(date)
-            case date.unspecified.year.map { |digit| digit == true }
+            case unspecified_year_digits(date)
             when [false, false, false, true] then :decade
             when [false, false, true, true] then :century
             end
+          end
+
+          # edtf 3 and 4 list the year digits; edtf 5 marks them in a bitmask,
+          # one bit per digit from the left ('198X' => 0b1000)
+          def unspecified_year_digits(date)
+            unspecified = date.unspecified
+            return unspecified.year.map { |digit| digit == true } if unspecified.respond_to?(:year)
+
+            Array.new(4) { |digit| unspecified.to_i[digit] == 1 }
           end
 
           def unknown_parts(date)

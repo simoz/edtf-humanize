@@ -33,6 +33,22 @@ jobs:
           bundler-cache: true
       - run: bundle exec rspec
 
+  edtf:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        edtf: ['~> 4.1', '~> 5.0']
+    env:
+      EDTF_VERSION: ${{ matrix.edtf }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+          bundler-cache: true
+      - run: bundle exec rspec
+
   minimums:
     runs-on: ubuntu-latest
     env:

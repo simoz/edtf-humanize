@@ -27,10 +27,10 @@ module Edtf
           def open_interval(date)
             if date.from == :open
               open_start_interval(formatted_date: formatted_date(date.to),
-                                  precision: date.to.precision)
+                                  precision: wording_precision(date.to))
             elsif date.to == :open
               open_end_interval(formatted_date: formatted_date(date.from),
-                                precision: date.from.precision)
+                                precision: wording_precision(date.from))
             end
           end
 
@@ -73,10 +73,10 @@ module Edtf
           def unknown_interval(date)
             if date.from == :unknown
               unknown_start_interval(formatted_date: formatted_date(date.to),
-                                     precision: date.to.precision)
+                                     precision: wording_precision(date.to))
             elsif date.to == :unknown
               unknown_end_interval(formatted_date: formatted_date(date.from),
-                                   precision: date.from.precision)
+                                   precision: wording_precision(date.from))
             end
           end
 
@@ -117,13 +117,27 @@ module Edtf
           end
 
           def formatted_date(date)
+            # edtf 5 intervals can also run between decades, centuries and
+            # seasons, which humanize themselves: '196X/197X' => 1960s to 1970s
+            return date.humanize unless date.is_a?(::Date)
+
             "#{apply_prefix_if_approximate(date)}" \
               "#{date_format(date)}" \
               "#{apply_suffix_if_approximate(date)}"
           end
 
+          # edtf 5 interval ends can also be decades, centuries and seasons,
+          # which take the year wording, and date-times, which show as days
+          def wording_precision(date)
+            case date.precision
+            when :year, :month, :day then date.precision
+            when :decade, :century, :season then :year
+            else :day
+            end
+          end
+
           def interval_prefix(date)
-            case date.from.precision
+            case wording_precision(date.from)
             when :year
               I18n.t('edtf.terms.interval_prefix_year', default: '')
             when :month
@@ -134,9 +148,7 @@ module Edtf
           end
 
           def interval_connector(date)
-            return interval_connector_approx if date.to.approximate.day ||
-                                                date.to.approximate.month ||
-                                                date.to.approximate.year
+            return interval_connector_approx if date.to.respond_to?(:approximate?) && date.to.approximate?
 
             interval_connector_other(date)
           end
@@ -147,7 +159,7 @@ module Edtf
           end
 
           def interval_connector_other(date)
-            case date.to.precision
+            case wording_precision(date.to)
             when :year
               I18n.t('edtf.terms.interval_connector_year', default: ' to ')
             when :month
